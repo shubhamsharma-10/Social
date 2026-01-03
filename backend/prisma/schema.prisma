@@ -23,14 +23,45 @@ model User {
   updatedAt   DateTime @updatedAt
 
   sessions Session[]
+  posts    Post[]
+  likes    Like[]
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  refreshToken String   @unique
-  createdAt    DateTime @default(now())
-  expiresAt    DateTime
+  id            String   @id @default(cuid())
+  userId        String
+  refresh_token String   @unique
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Post {
+  id       String  @id @default(cuid())
+  content  String
+  imageUrl String? // Optional single image URL
+  authorId String
+  author   User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  likeCount    Int @default(0)
+  commentCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  likes Like[]
+  @@index([authorId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  @@unique([userId, postId])  // One like per user per post
+  @@index([postId])
 }

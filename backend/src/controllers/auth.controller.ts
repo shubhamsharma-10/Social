@@ -1,8 +1,10 @@
 import { Request, Response } from "express";
 import { prisma } from "../config/db.js";
 import bcrypt from 'bcrypt';
+import jwt from "jsonwebtoken";
 import config from "../config/config.js";
 import { generateToken } from "../utils/token.util.js";
+import { UserPayload } from "../utils/types.util.js";
 
 const authController = {
     register: async (req: Request, res: Response) => {
@@ -40,12 +42,26 @@ const authController = {
                 }
             })
 
-            const token = generateToken(newUser.id);
+            const tokens = generateToken({
+                id: newUser.id,
+                email: newUser.email,
+                username: newUser.username
+            })
+        
+            const ans  = await prisma.session.create({
+                data :{
+                    userId: newUser.id,
+                    refresh_token: tokens.refreshToken,
+                    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                }
+            })
+
+            console.log("Session Created: ", ans);
 
             res.status(201).json({
                 status: true,
                 message: "User registered successfully",
-                token
+                data: tokens
             });
         } catch (error) {
             res.status(500).json({
@@ -71,12 +87,26 @@ const authController = {
             if(!isPasswordValid) {
                 throw new Error("Invalid credential");
             }
-            const token = generateToken(user.id);
+
+            const tokens = generateToken({
+                id: user.id,
+                email: user.email,
+                username: user.username
+            })
+
+            const ans  = await prisma.session.create({
+                data:{
+                    userId: user.id,
+                    refresh_token: tokens.refreshToken,
+                    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                }
+            })
+            console.log("Session Created: ", ans);
 
             res.status(200).json({
                 status: true,
                 message: "Login successful",
-                token
+                data: tokens
             });
 
         } catch (error) {
@@ -85,6 +115,48 @@ const authController = {
                 status: false,
                 error: error instanceof Error ? error.message : error   
             });
+        }
+    },
+
+    refresh: async(req: Request, res: Response) => {
+        const { refresh_token } = req.body;
+        try {
+            const validToken = jwt.verify(refresh_token, config.refresh_token_secret as jwt.Secret) as UserPayload;
+            if(! validToken) {
+                throw new Error("Invalid refresh token")
+            }
+
+            const sessionExist = await prisma.session.findUnique({
+                where: { refresh_token }
+            })
+
+            if(!sessionExist){
+                throw new Error("Refresh token not found")
+            }
+            const tokens = generateToken({
+                id: validToken.id,
+                email: validToken.email,
+                username: validToken.username
+            })
+
+            await prisma.session.update({
+                where: { id: sessionExist.id},
+                data: {
+                    refresh_token: tokens.refreshToken,
+                    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+                }
+            })
+
+            res.status(200).json({
+                status: true,
+                message: "Token refreshed successfully",
+                data: tokens
+            })
+        } catch (error) {
+            res.status(401).json({
+                status: false,
+                error: error instanceof Error ?  error.message : error
+            })
         }
     },
 
@@ -115,6 +187,26 @@ const authController = {
             });
        }
 
+    },
+
+    logout: async(req: Request, res: Response) => {
+        const { refresh_token } = req.body;
+        try {
+           const ans = await prisma.session.deleteMany({
+                where: { refresh_token }
+            });
+            console.log("Logout Deletion Result: ", ans);
+            res.status(200).json({
+                status: true,
+                message: "Logout successful"
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: false,
+                message: "Server error",
+                error
+            });
+        }
     }
 }
 

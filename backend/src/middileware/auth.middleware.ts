@@ -9,7 +9,7 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
             throw new Error("Unauthorized access")
         }
     
-        const validToken = jwt.verify(token, config.jwt_secret as jwt.Secret);
+        const validToken = jwt.verify(token, config.access_token_secret as jwt.Secret);
         console.log("Verified Token: ", validToken);
         if(!validToken){
             throw new Error("Unauthorized access")
