@@ -13,6 +13,6 @@ export default defineConfig({
   },
   server: {
     host: true,
-    allowedHosts: ["social.shubhamsharma.app"],
+    allowedHosts: true,
   },
 })
