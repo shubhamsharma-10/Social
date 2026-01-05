@@ -6,7 +6,14 @@ import feedRouter from './routes/feed.route.js';
 import likeRouter from './routes/like.route.js';
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://social.shubhamsharma.app",
+      "http://localhost:5173"
+    ]
+  })
+);
 app.use(express.json());
 app.get('/health', (req, res) => {
     res.status(200).json({
