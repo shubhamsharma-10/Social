@@ -58,10 +58,23 @@ const authController = {
 
             console.log("Session Created: ", ans);
 
+            // Set cookies
+            res.cookie('accessToken', tokens.accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 15 * 60 * 1000 // 15 minutes
+            });
+            res.cookie('refreshToken', tokens.refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
             res.status(201).json({
                 status: true,
-                message: "User registered successfully",
-                data: tokens
+                message: "User registered successfully"
             });
         } catch (error) {
             res.status(500).json({
@@ -103,10 +116,23 @@ const authController = {
             })
             console.log("Session Created: ", ans);
 
+            // Set cookies
+            res.cookie('accessToken', tokens.accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 15 * 60 * 1000 // 15 minutes
+            });
+            res.cookie('refreshToken', tokens.refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
             res.status(200).json({
                 status: true,
-                message: "Login successful",
-                data: tokens
+                message: "Login successful"
             });
 
         } catch (error) {
@@ -119,8 +145,11 @@ const authController = {
     },
 
     refresh: async(req: Request, res: Response) => {
-        const { refresh_token } = req.body;
+        const refresh_token = req.cookies.refreshToken;
         try {
+            if (!refresh_token) {
+                throw new Error("No refresh token provided")
+            }
             const validToken = jwt.verify(refresh_token, config.refresh_token_secret as jwt.Secret) as UserPayload;
             if(! validToken) {
                 throw new Error("Invalid refresh token")
@@ -147,10 +176,23 @@ const authController = {
                 }
             })
 
+            // Set new cookies
+            res.cookie('accessToken', tokens.accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 15 * 60 * 1000 // 15 minutes
+            });
+            res.cookie('refreshToken', tokens.refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+            });
+
             res.status(200).json({
                 status: true,
-                message: "Token refreshed successfully",
-                data: tokens
+                message: "Token refreshed successfully"
             })
         } catch (error) {
             res.status(401).json({
@@ -190,12 +232,27 @@ const authController = {
     },
 
     logout: async(req: Request, res: Response) => {
-        const { refresh_token } = req.body;
+        const refresh_token = req.cookies.refreshToken;
         try {
-           const ans = await prisma.session.deleteMany({
-                where: { refresh_token }
+           if (refresh_token) {
+               const ans = await prisma.session.deleteMany({
+                    where: { refresh_token }
+                });
+                console.log("Logout Deletion Result: ", ans);
+           }
+
+            // Clear cookies
+            res.clearCookie('accessToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
             });
-            console.log("Logout Deletion Result: ", ans);
+            res.clearCookie('refreshToken', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+            });
+
             res.status(200).json({
                 status: true,
                 message: "Logout successful"

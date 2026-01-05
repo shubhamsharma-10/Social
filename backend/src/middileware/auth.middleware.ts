@@ -4,7 +4,7 @@ import config from '../config/config.js';
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     try {
-        const token = req.headers['authorization']?.split(' ')[1];
+        const token = req.cookies?.accessToken || req.headers['authorization']?.split(' ')[1];
         if(!token){
             throw new Error("Unauthorized access")
         }

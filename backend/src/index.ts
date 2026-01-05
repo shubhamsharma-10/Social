@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import authRouter from './routes/auth.route.js';
 import postRouter from './routes/post.route.js';
 import feedRouter from './routes/feed.route.js';
@@ -11,9 +12,11 @@ app.use(
     origin: [
       "https://social.shubhamsharma.app",
       "http://localhost:5173"
-    ]
+    ],
+    credentials: true
   })
 );
+app.use(cookieParser());
 app.use(express.json());
 app.get('/health', (req, res) => {
     res.status(200).json({

@@ -30,48 +30,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkAuth = async () => {
         try {
-            const tokens = localStorage.getItem('tokens')
-            if (!tokens) {
-                setIsLoading(false)
-                return
-            }
-
+            // Cookies are sent automatically with credentials: true
             const response = await authApi.getMe()
             setUser(response.data)
         } catch (error) {
-            localStorage.removeItem('tokens')
+            // User not authenticated or token expired
+            setUser(null)
         } finally {
             setIsLoading(false)
         }
     }
 
     const login = async (data: LoginData) => {
-        const response = await authApi.login(data)
-        localStorage.setItem('tokens', JSON.stringify(response.data))
-
+        await authApi.login(data)
+        // Cookies are set by the server automatically
         const userResponse = await authApi.getMe()
         setUser(userResponse.data)
     }
 
     const register = async (data: RegisterData) => {
-        const response = await authApi.register(data)
-        localStorage.setItem('tokens', JSON.stringify(response.data))
-
+        await authApi.register(data)
+        // Cookies are set by the server automatically
         const userResponse = await authApi.getMe()
         setUser(userResponse.data)
     }
 
     const logout = async () => {
         try {
-            const tokens = localStorage.getItem('tokens')
-            if (tokens) {
-                const { refreshToken } = JSON.parse(tokens)
-                await authApi.logout(refreshToken)
-            }
+            await authApi.logout()
         } catch (error) {
             console.error('Logout error:', error)
         } finally {
-            localStorage.removeItem('tokens')
             setUser(null)
         }
     }
